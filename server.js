@@ -155,13 +155,13 @@ function evaluateMessage(text) {
   return { category: 'GENERAL', replyText, reason: 'General Question/Message -> Sent Busy Auto-Reply' };
 }
 
-// Initialize WhatsApp Web Client with Ultra-Fast Low Memory Chrome Flags
+// Initialize WhatsApp Web Client
 let client = null;
 
 function initWhatsAppClient() {
   cleanStaleLockFiles();
 
-  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client with low-memory optimization...');
+  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
   agentState.status = 'INITIALIZING';
   broadcast({ type: 'STATE_UPDATE', state: agentState });
 
@@ -171,28 +171,18 @@ function initWhatsAppClient() {
     '--disable-dev-shm-usage',
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
-    '--no-zygote',
-    '--single-process',
-    '--disable-gpu',
-    '--disable-software-rasterizer',
-    '--disable-extensions',
-    '--js-flags=--expose-gc',
-    '--disable-background-networking',
-    '--disable-default-apps',
-    '--disable-sync',
-    '--disable-translate',
-    '--hide-scrollbars',
-    '--metrics-recording-only',
-    '--mute-audio',
-    '--no-default-browser-check'
+    '--no-default-browser-check',
+    '--disable-gpu'
   ];
 
   const clientOpts = {
     authStrategy: new LocalAuth({
       dataPath: path.join(__dirname, '.wwebjs_auth')
     }),
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    qrMaxRetries: 10,
+    webVersionCache: {
+      type: 'remote',
+      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+    },
     puppeteer: {
       headless: true,
       args: puppeteerArgs
