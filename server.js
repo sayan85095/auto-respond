@@ -89,6 +89,25 @@ function broadcast(data) {
   });
 }
 
+// Clean stale Chrome SingletonLock files that prevent Puppeteer from starting in Docker
+function cleanStaleLockFiles() {
+  try {
+    const authPath = path.join(__dirname, '.wwebjs_auth', 'session');
+    if (fs.existsSync(authPath)) {
+      const files = ['SingletonLock', 'SingletonSocket', 'SingletonCookie'];
+      files.forEach(f => {
+        const filePath = path.join(authPath, f);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Cleaned stale lock file: ${filePath}`);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Warning cleaning lock files:', err.message);
+  }
+}
+
 // Exact Evaluator Engine matching exact user requirements
 function evaluateMessage(text) {
   if (!text) return { category: 'NONE', replyText: null, reason: 'Empty message' };
@@ -140,6 +159,8 @@ function evaluateMessage(text) {
 let client = null;
 
 function initWhatsAppClient() {
+  cleanStaleLockFiles();
+
   addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
   agentState.status = 'INITIALIZING';
   broadcast({ type: 'STATE_UPDATE', state: agentState });
@@ -151,7 +172,6 @@ function initWhatsAppClient() {
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-zygote',
-    '--single-process',
     '--disable-gpu'
   ];
 
@@ -287,6 +307,10 @@ function initWhatsAppClient() {
 
   client.initialize().catch(err => {
     addLog('error', 'Initialization Error', `Failed to initialize WhatsApp Web client: ${err.message}`);
+    setTimeout(() => {
+      console.log('Retrying WhatsApp Web client initialization after error...');
+      initWhatsAppClient();
+    }, 5000);
   });
 }
 
@@ -335,7 +359,7 @@ app.post('/api/simulate', (req, res) => {
     addLog('gm', '[SIMULATOR] Morning Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
   } else if (evalResult.category === 'NIGHT') {
     agentState.stats.nightReplies++;
-    addLog('gn', '[SIMULATOR] Night Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
+    addLog('gn', '[SIMULATOR] Night Reply', `[Simulated] From ${senderName}: "${evalResult.replyText}" -> Replied: "${evalResult.replyText}"`);
   } else if (evalResult.category === 'GENERAL') {
     agentState.stats.generalReplies++;
     addLog('gen', '[SIMULATOR] Auto-Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
