@@ -11,6 +11,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PORT=3000
 
 WORKDIR /usr/src/app

@@ -151,6 +151,7 @@ function initWhatsAppClient() {
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-zygote',
+    '--single-process',
     '--disable-gpu'
   ];
 
@@ -356,8 +357,8 @@ wss.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'INIT_STATE', state: agentState }));
 });
 
-// Start Server
-server.listen(PORT, () => {
+// Start Server explicitly binding to 0.0.0.0 for Docker containers
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(`🚀 Smart WhatsApp Agent active on port ${PORT}!`);
   console.log(`🌐 Dashboard URL: http://localhost:${PORT}`);
