@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Auto Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Anek+Bangla:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">💬</div>
+        <div>
+          <h1>WhatsApp Auto Agent</h1>
+          <p class="subtitle">Smart Auto-Responder with Active Chat Detection</p>
+        </div>
+      </div>
+      
+      <div class="header-controls">
+        <div class="status-pill" id="agentStatusPill">
+          <span class="status-dot"></span>
+          <span class="status-text" id="statusText">Initializing...</span>
+        </div>
+
+        <div class="toggle-container">
+          <span class="toggle-label">Auto-Reply Master</span>
+          <label class="switch">
+            <input type="checkbox" id="autoReplyToggle" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+
+      <!-- Connection Card -->
+      <section class="card connection-card">
+        <div class="card-header">
+          <h2>📱 WhatsApp Connection</h2>
+          <button class="btn btn-secondary btn-sm" id="btnReconnect">🔄 Reconnect</button>
+        </div>
+        
+        <div class="qr-container" id="qrContainer">
+          <div class="qr-placeholder" id="qrPlaceholder">
+            <div class="spinner"></div>
+            <p>Initializing WhatsApp Client...</p>
+          </div>
+          <img id="qrImage" src="" alt="WhatsApp Web QR Code" style="display: none;">
+        </div>
+
+        <div class="connection-info" id="connectionInfo">
+          <p class="info-title" id="infoTitle">Scanning Required</p>
+          <p class="info-desc" id="infoDesc">Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, and scan the QR code above.</p>
+        </div>
+      </section>
+
+      <!-- Analytics Stats Cards -->
+      <section class="stats-section">
+        <div class="stat-card">
+          <div class="stat-icon morning-glow">☀️</div>
+          <div class="stat-info">
+            <h3 id="statMorning">0</h3>
+            <p>Morning Replies</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon night-glow">🌙</div>
+          <div class="stat-info">
+            <h3 id="statNight">0</h3>
+            <p>Night Replies</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon general-glow">💬</div>
+          <div class="stat-info">
+            <h3 id="statGeneral">0</h3>
+            <p>General Replies</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon info-glow">📥</div>
+          <div class="stat-info">
+            <h3 id="statTotal">0</h3>
+            <p>Total Received</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Smart Rules Control -->
+      <section class="card rules-card">
+        <div class="card-header">
+          <h2>⚙️ Smart Chat Rules</h2>
+        </div>
+        <div class="rules-form">
+          <div class="form-group">
+            <label>🤫 Pause Bot when YOU reply (Minutes)</label>
+            <input type="number" id="activePauseInput" value="15" min="0" max="120">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">If you send a message in a chat, bot pauses for this many minutes in that chat.</small>
+          </div>
+          <div class="form-group">
+            <label>⏱️ Bot Auto-Reply Cooldown (Minutes)</label>
+            <input type="number" id="botCooldownInput" value="15" min="0" max="120">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Prevents repeating auto-replies to the same contact if they send multiple messages.</small>
+          </div>
+          <button class="btn btn-primary" id="btnSaveRules" style="align-self: flex-end;">💾 Save Smart Rules</button>
+        </div>
+      </section>
+
+      <!-- Template Manager -->
+      <section class="card templates-card">
+        <div class="card-header">
+          <h2>💬 Response Templates</h2>
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="generalTab">💬 Any Message</button>
+            <button class="tab-btn" data-tab="morningTab">☀️ Good Morning</button>
+            <button class="tab-btn" data-tab="nightTab">🌙 Good Night</button>
+          </div>
+        </div>
+
+        <!-- General Templates -->
+        <div class="tab-content active" id="generalTab">
+          <div class="add-template-box">
+            <input type="text" id="newGeneralInput" placeholder="Add response for any incoming message..." />
+            <button class="btn btn-primary" id="btnAddGeneral">+ Add</button>
+          </div>
+          <ul class="template-list" id="generalTemplateList"></ul>
+        </div>
+
+        <!-- Morning Templates -->
+        <div class="tab-content" id="morningTab">
+          <div class="add-template-box">
+            <input type="text" id="newMorningInput" placeholder="Add Good Morning response..." />
+            <button class="btn btn-primary" id="btnAddMorning">+ Add</button>
+          </div>
+          <ul class="template-list" id="morningTemplateList"></ul>
+        </div>
+
+        <!-- Night Templates -->
+        <div class="tab-content" id="nightTab">
+          <div class="add-template-box">
+            <input type="text" id="newNightInput" placeholder="Add Good Night response..." />
+            <button class="btn btn-primary" id="btnAddNight">+ Add</button>
+          </div>
+          <ul class="template-list" id="nightTemplateList"></ul>
+        </div>
+      </section>
+
+      <!-- Simulator Panel -->
+      <section class="card simulator-card">
+        <div class="card-header">
+          <h2>🧪 Simulator</h2>
+          <span class="badge badge-beta">Test Mode</span>
+        </div>
+        <p class="section-desc">Test how the bot responds to any incoming message.</p>
+
+        <form id="simulatorForm" class="sim-form">
+          <div class="form-group">
+            <label>Sender Name</label>
+            <input type="text" id="simSender" value="Rohit" placeholder="Contact Name" required>
+          </div>
+          <div class="form-group">
+            <label>Incoming Message</label>
+            <input type="text" id="simMessage" value="Hey" placeholder="Type any message..." required>
+          </div>
+          <button type="submit" class="btn btn-success btn-block">🚀 Run Test Simulation</button>
+        </form>
+
+        <div class="sim-result" id="simResult" style="display: none;">
+          <div class="sim-result-header">
+            <span class="sim-tag" id="simCategory">GENERAL</span>
+            <span class="sim-reason" id="simReason">Matched rule</span>
+          </div>
+          <div class="sim-reply-box" id="simReplyBox">...</div>
+        </div>
+      </section>
+
+      <!-- Live Activity Log -->
+      <section class="card logs-card">
+        <div class="card-header">
+          <h2>📜 Live Activity Stream</h2>
+          <button class="btn btn-danger btn-sm" id="btnClearLogs">Clear Stream</button>
+        </div>
+
+        <div class="logs-container" id="logsContainer">
+          <div class="empty-logs" id="emptyLogs">
+            <p>No activity recorded yet. Waiting for incoming WhatsApp messages...</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>WhatsApp Smart Auto Agent • 2026</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
