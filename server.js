@@ -155,13 +155,13 @@ function evaluateMessage(text) {
   return { category: 'GENERAL', replyText, reason: 'General Question/Message -> Sent Busy Auto-Reply' };
 }
 
-// Initialize WhatsApp Web Client
+// Initialize WhatsApp Web Client with Ultra-Fast Low Memory Chrome Flags
 let client = null;
 
 function initWhatsAppClient() {
   cleanStaleLockFiles();
 
-  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
+  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client with low-memory optimization...');
   agentState.status = 'INITIALIZING';
   broadcast({ type: 'STATE_UPDATE', state: agentState });
 
@@ -172,13 +172,27 @@ function initWhatsAppClient() {
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-zygote',
-    '--disable-gpu'
+    '--single-process',
+    '--disable-gpu',
+    '--disable-software-rasterizer',
+    '--disable-extensions',
+    '--js-flags=--expose-gc',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--disable-sync',
+    '--disable-translate',
+    '--hide-scrollbars',
+    '--metrics-recording-only',
+    '--mute-audio',
+    '--no-default-browser-check'
   ];
 
   const clientOpts = {
     authStrategy: new LocalAuth({
       dataPath: path.join(__dirname, '.wwebjs_auth')
     }),
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    qrMaxRetries: 10,
     puppeteer: {
       headless: true,
       args: puppeteerArgs
@@ -359,7 +373,7 @@ app.post('/api/simulate', (req, res) => {
     addLog('gm', '[SIMULATOR] Morning Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
   } else if (evalResult.category === 'NIGHT') {
     agentState.stats.nightReplies++;
-    addLog('gn', '[SIMULATOR] Night Reply', `[Simulated] From ${senderName}: "${evalResult.replyText}" -> Replied: "${evalResult.replyText}"`);
+    addLog('gn', '[SIMULATOR] Night Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
   } else if (evalResult.category === 'GENERAL') {
     agentState.stats.generalReplies++;
     addLog('gen', '[SIMULATOR] Auto-Reply', `[Simulated] From ${senderName}: "${messageText}" -> Replied: "${evalResult.replyText}"`);
@@ -374,11 +388,6 @@ app.post('/api/reconnect', (req, res) => {
   }
   initWhatsAppClient();
   res.json({ success: true, message: 'Reconnecting WhatsApp client...' });
-});
-
-// WebSocket Connection Handler
-wss.on('connection', (ws) => {
-  ws.send(JSON.stringify({ type: 'INIT_STATE', state: agentState }));
 });
 
 // Start Server explicitly binding to 0.0.0.0 for Docker containers
