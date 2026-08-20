@@ -210,14 +210,19 @@ function initWhatsAppClient() {
   client.on('authenticated', () => {
     agentState.status = 'AUTHENTICATED';
     agentState.qrCodeUrl = null;
+    agentState.userInfo = 'WhatsApp Account';
     addLog('success', 'Authenticated', 'WhatsApp Web session authenticated successfully!');
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
 
   client.on('ready', () => {
     agentState.status = 'READY';
-    agentState.userInfo = client.info ? client.info.pushname || client.info.wid.user : 'WhatsApp User';
-    addLog('success', 'Smart Agent Active 24/7', `WhatsApp Multi-Lingual Agent active for: ${agentState.userInfo}`);
+    let displayName = 'Active Account';
+    if (client.info) {
+      displayName = client.info.pushname || (client.info.wid ? client.info.wid.user : null) || 'WhatsApp User';
+    }
+    agentState.userInfo = displayName;
+    addLog('success', 'Smart Agent Active 24/7', `WhatsApp Multi-Lingual Agent connected for: ${agentState.userInfo}`);
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
 
