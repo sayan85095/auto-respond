@@ -122,12 +122,26 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="text-align: center; color: var(--success);">
           <div style="font-size: 3.5rem; margin-bottom: 8px;">✅</div>
           <p style="font-weight: 700; color: var(--text-main);">WhatsApp Connected!</p>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Smart Auto-Agent active (Auto-pauses when chatting).</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Logged in as: <strong>${escapeHtml(state.userInfo || 'Active')}</strong></p>
         </div>
       `;
-      infoTitle.textContent = 'Agent Active';
+      infoTitle.textContent = 'Agent Active 24/7';
       infoTitle.style.color = 'var(--success)';
-      infoDesc.textContent = 'Smart Auto-Responder is active. If you reply to a chat, bot automatically pauses in that conversation!';
+      infoDesc.textContent = `Connected successfully as ${state.userInfo || 'WhatsApp User'}. Auto-responder is active.`;
+
+    } else if (state.status === 'AUTHENTICATED') {
+      statusPill.classList.add('status-ready');
+      statusText.textContent = 'Authenticating...';
+
+      qrContainer.innerHTML = `
+        <div class="qr-placeholder">
+          <div class="spinner"></div>
+          <p>Authenticated! Loading WhatsApp chats...</p>
+        </div>
+      `;
+      infoTitle.textContent = 'Authenticating...';
+      infoTitle.style.color = 'var(--success)';
+      infoDesc.textContent = 'QR Code scanned successfully! Syncing chats with server...';
 
     } else if (state.status === 'QR_READY' && state.qrCodeUrl) {
       statusPill.classList.add('status-qr');
