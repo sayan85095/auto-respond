@@ -225,12 +225,9 @@ function initWhatsAppClient() {
 
     try {
       if (client && client.info) {
-        if (client.info.pushname) {
-          userName = client.info.pushname;
-        }
-        if (client.info.wid && client.info.wid.user) {
-          userPhone = client.info.wid.user;
-        }
+        if (client.info.pushname) userName = client.info.pushname;
+        if (client.info.wid && client.info.wid.user) userPhone = client.info.wid.user;
+        if (client.info.me && client.info.me.user) userPhone = client.info.me.user;
         if (client.info.wid && client.info.wid._serialized) {
           const myContact = await client.getContactById(client.info.wid._serialized);
           if (myContact) {
@@ -240,7 +237,6 @@ function initWhatsAppClient() {
         }
       }
 
-      // Query WhatsApp Web internal Store object via Puppeteer page evaluation if pushname is missing
       if (!userName && client && client.pupPage) {
         const storeName = await client.pupPage.evaluate(() => {
           try {
@@ -256,15 +252,14 @@ function initWhatsAppClient() {
       console.error('Error resolving user contact info on ready:', err.message);
     }
 
-    // Build clear user label
     let fullLabel = '';
-    if (userName && userName !== 'WhatsApp User') {
+    if (userName && !userName.toLowerCase().includes('whatsapp user')) {
       fullLabel = userName;
       if (userPhone) fullLabel += ` (+${userPhone})`;
     } else if (userPhone) {
-      fullLabel = `+${userPhone}`;
+      fullLabel = `Account (+${userPhone})`;
     } else {
-      fullLabel = 'Connected WhatsApp User';
+      fullLabel = 'Active WhatsApp Account';
     }
 
     agentState.userInfo = fullLabel;
