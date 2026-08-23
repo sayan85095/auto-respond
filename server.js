@@ -396,35 +396,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Express API Routes
 app.get('/api/state', (req, res) => res.json(agentState));
 
-// Route to request Phone Number Pairing Code (OTP Code)
-app.post('/api/request-pairing-code', async (req, res) => {
-  const { phoneNumber } = req.body;
-  if (!phoneNumber) {
-    return res.status(400).json({ success: false, message: 'Phone number is required' });
-  }
-
-  const cleanedNumber = phoneNumber.replace(/\D/g, '');
-  if (!cleanedNumber || cleanedNumber.length < 10) {
-    return res.status(400).json({ success: false, message: 'Invalid phone number. Please include country code (e.g. 919876543210)' });
-  }
-
-  try {
-    if (!client) {
-      return res.status(500).json({ success: false, message: 'WhatsApp client is initializing. Please try again in 5 seconds.' });
-    }
-
-    addLog('info', 'Pairing Code Requested', `Requesting WhatsApp Pairing Code for phone: +${cleanedNumber}`);
-    const code = await client.requestPairingCode(cleanedNumber);
-    
-    addLog('success', 'Pairing Code Generated', `Pairing Code generated: ${code}`);
-    res.json({ success: true, code, phoneNumber: cleanedNumber });
-  } catch (err) {
-    console.error('Error requesting pairing code:', err);
-    addLog('error', 'Pairing Code Error', `Failed to generate pairing code: ${err.message}`);
-    res.json({ success: false, message: err.message || 'Failed to generate pairing code. Please make sure WhatsApp client is ready.' });
-  }
-});
-
 app.post('/api/toggle-reply', (req, res) => {
   agentState.autoReplyEnabled = !agentState.autoReplyEnabled;
   addLog('info', 'Setting Changed', `Auto-Reply turned ${agentState.autoReplyEnabled ? 'ON' : 'OFF'}`);
@@ -479,6 +450,20 @@ app.post('/api/reconnect', (req, res) => {
   initWhatsAppClient();
   res.json({ success: true, message: 'Reconnecting WhatsApp client...' });
 });
+
+// Self Keep-Alive Ping to prevent Render Free Tier from sleeping or spinning down
+const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+setInterval(() => {
+  try {
+    http.get(`${RENDER_EXTERNAL_URL}/api/state`, (res) => {
+      console.log(`Keep-alive ping sent to ${RENDER_EXTERNAL_URL}/api/state - Status: ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error('Keep-alive ping error:', err.message);
+    });
+  } catch (err) {
+    console.error('Keep-alive execution error:', err.message);
+  }
+}, 3 * 60 * 1000); // Ping every 3 minutes
 
 // Start Server explicitly binding to 0.0.0.0 for Docker containers
 server.listen(PORT, '0.0.0.0', () => {
