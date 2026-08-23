@@ -11,6 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const infoDesc = document.getElementById('infoDesc');
   const btnReconnect = document.getElementById('btnReconnect');
 
+  const loginTabBtns = document.querySelectorAll('.login-tab-btn');
+  const qrModeContainer = document.getElementById('qrModeContainer');
+  const phoneModeContainer = document.getElementById('phoneModeContainer');
+
+  const phoneInput = document.getElementById('phoneInput');
+  const btnGetPairingCode = document.getElementById('btnGetPairingCode');
+  const pairingCodeResult = document.getElementById('pairingCodeResult');
+  const pairingCodeText = document.getElementById('pairingCodeText');
+
   const statMorning = document.getElementById('statMorning');
   const statNight = document.getElementById('statNight');
   const statGeneral = document.getElementById('statGeneral');
@@ -56,6 +65,62 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let popupShown = false;
+
+  // Login Mode Tab Switcher (QR Code vs Phone OTP Code)
+  loginTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      loginTabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const mode = btn.getAttribute('data-login-mode');
+      if (mode === 'phone') {
+        qrModeContainer.style.display = 'none';
+        phoneModeContainer.style.display = 'block';
+      } else {
+        phoneModeContainer.style.display = 'none';
+        qrModeContainer.style.display = 'block';
+      }
+    });
+  });
+
+  // Request Phone Pairing Code (OTP Code) Handler
+  if (btnGetPairingCode) {
+    btnGetPairingCode.addEventListener('click', async () => {
+      const phoneNumber = phoneInput.value.trim();
+      if (!phoneNumber) {
+        alert('❌ অনুগ্রহ করে আপনার মোবাইল নম্বরটি লিখুন (যেমন: 919876543210)');
+        return;
+      }
+
+      btnGetPairingCode.disabled = true;
+      btnGetPairingCode.textContent = 'Generating...';
+
+      try {
+        const res = await fetch('/api/request-pairing-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber })
+        });
+
+        const data = await res.json();
+        if (data.success && data.code) {
+          pairingCodeResult.style.display = 'block';
+          // Format 8-digit code as A4X9 - 82KL
+          const formattedCode = data.code.length === 8 ? `${data.code.substring(0, 4)} - ${data.code.substring(4)}` : data.code;
+          pairingCodeText.textContent = formattedCode;
+          alert(`✅ Pairing Code Generated: ${formattedCode}\n\nআপনার ফোনের WhatsApp অ্যাপ খুলে নোটিফিকেশনে চাপ দিন অথবা Linked Devices-এ গিয়ে এই কোডটি লিখুন!`);
+        } else {
+          alert(`❌ ${data.message || 'Failed to generate code'}`);
+        }
+      } catch (err) {
+        console.error('Error requesting pairing code:', err);
+        alert('❌ Error connecting to server. Make sure agent is running.');
+      } finally {
+        btnGetPairingCode.disabled = false;
+        btnGetPairingCode.textContent = 'Get Code 📲';
+      }
+    });
+  }
 
   // Custom Toast Popup Notification
   function showSuccessPopup(name) {
@@ -170,8 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="text-align: center; color: var(--success); padding: 12px;">
           <div style="font-size: 3.8rem; margin-bottom: 8px;">✅</div>
           <p style="font-weight: 800; font-size: 1.2rem; color: var(--text-main); margin: 0;">Device Linked & Active!</p>
-          <p style="font-size: 0.95rem; color: var(--primary); font-weight: 700; margin-top: 6px;">Logged in as: <strong>${escapeHtml(state.userInfo || 'WhatsApp User')}</strong></p>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">QR Code is permanently hidden while device is connected.</p>
+          <div style="margin-top: 10px; padding: 10px 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; display: inline-block;">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 2px 0;">CONNECTED ACCOUNT</p>
+            <p style="font-size: 1.1rem; color: #10B981; font-weight: 800; margin: 0;">👤 ${escapeHtml(state.userInfo || 'Active Account')}</p>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">QR Code is permanently hidden while device is connected.</p>
         </div>
       `;
       infoTitle.textContent = `Connected: ${state.userInfo || 'WhatsApp User'}`;

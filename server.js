@@ -396,6 +396,35 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Express API Routes
 app.get('/api/state', (req, res) => res.json(agentState));
 
+// Route to request Phone Number Pairing Code (OTP Code)
+app.post('/api/request-pairing-code', async (req, res) => {
+  const { phoneNumber } = req.body;
+  if (!phoneNumber) {
+    return res.status(400).json({ success: false, message: 'Phone number is required' });
+  }
+
+  const cleanedNumber = phoneNumber.replace(/\D/g, '');
+  if (!cleanedNumber || cleanedNumber.length < 10) {
+    return res.status(400).json({ success: false, message: 'Invalid phone number. Please include country code (e.g. 919876543210)' });
+  }
+
+  try {
+    if (!client) {
+      return res.status(500).json({ success: false, message: 'WhatsApp client is initializing. Please try again in 5 seconds.' });
+    }
+
+    addLog('info', 'Pairing Code Requested', `Requesting WhatsApp Pairing Code for phone: +${cleanedNumber}`);
+    const code = await client.requestPairingCode(cleanedNumber);
+    
+    addLog('success', 'Pairing Code Generated', `Pairing Code generated: ${code}`);
+    res.json({ success: true, code, phoneNumber: cleanedNumber });
+  } catch (err) {
+    console.error('Error requesting pairing code:', err);
+    addLog('error', 'Pairing Code Error', `Failed to generate pairing code: ${err.message}`);
+    res.json({ success: false, message: err.message || 'Failed to generate pairing code. Please make sure WhatsApp client is ready.' });
+  }
+});
+
 app.post('/api/toggle-reply', (req, res) => {
   agentState.autoReplyEnabled = !agentState.autoReplyEnabled;
   addLog('info', 'Setting Changed', `Auto-Reply turned ${agentState.autoReplyEnabled ? 'ON' : 'OFF'}`);

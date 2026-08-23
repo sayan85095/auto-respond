@@ -1,214 +1,250 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Auto Agent</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Anek+Bangla:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Auto Agent - 24/7 Smart Auto-Responder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="brand">
-                <div class="logo-icon">💬</div>
-                <div>
-                    <h1>WhatsApp Auto Agent</h1>
-                    <p class="subtitle">Smart Auto-Responder with Active Chat Detection</p>
-                </div>
-            </div>
-
-            <div class="header-controls">
-                <div class="status-pill" id="agentStatusPill">
-                    <span class="status-dot"></span>
-                    <span class="status-text" id="statusText">Initializing...</span>
-                </div>
-
-                <div class="toggle-container">
-                    <span class="toggle-label">Auto-Reply Master</span>
-                    <label class="switch">
+  <div class="app-container">
+    <!-- Header Navbar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">💬</div>
+        <div>
+          <h1>WhatsApp Auto Agent</h1>
+          <p class="subtitle">Smart Auto-Responder with Active Chat Detection</p>
+        </div>
+      </div>
+      
+      <div class="nav-controls">
+        <div class="status-pill" id="agentStatusPill">
+          <span class="status-dot"></span>
+          <span id="statusText">Initializing...</span>
+        </div>
+        
+        <div class="master-toggle">
+          <label for="autoReplyToggle" class="toggle-label">Auto-Reply Master</label>
+          <label class="switch">
             <input type="checkbox" id="autoReplyToggle" checked>
             <span class="slider round"></span>
           </label>
-                </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Status & QR Connection -->
+      <section class="card connection-card">
+        <div class="card-header">
+          <h2>📱 WhatsApp Connection</h2>
+          <button id="btnReconnect" class="btn-secondary btn-sm" title="Restart Client">
+            <span>🔄</span> Reconnect
+          </button>
+        </div>
+
+        <!-- Mode Switcher Tabs (QR Code vs Phone Pairing Code) -->
+        <div class="login-tabs">
+          <button class="login-tab-btn active" data-login-mode="qr">📷 QR Code</button>
+          <button class="login-tab-btn" data-login-mode="phone">📲 Phone OTP Code</button>
+        </div>
+
+        <!-- Mode 1: QR Code -->
+        <div id="qrModeContainer" class="login-mode-section active">
+          <div class="qr-box" id="qrContainer">
+            <div class="qr-placeholder" id="qrPlaceholder">
+              <div class="spinner"></div>
+              <p>Starting WhatsApp Client...</p>
             </div>
-        </header>
+            <img id="qrImage" src="" alt="WhatsApp Web QR Code" style="display: none;">
+          </div>
+          <div class="connection-info">
+            <h3 id="infoTitle">Scan QR Code</h3>
+            <p id="infoDesc">Open WhatsApp on your phone → Linked Devices → Link a Device, and scan the QR code above.</p>
+          </div>
+        </div>
 
-        <!-- Main Grid -->
-        <main class="dashboard-grid">
+        <!-- Mode 2: Phone Pairing OTP Code -->
+        <div id="phoneModeContainer" class="login-mode-section" style="display: none;">
+          <div class="pairing-box">
+            <p class="pairing-hint">ফোন নম্বর লিখুন (Country Code সহ, যেমন: 919876543210)</p>
+            <div class="pairing-input-group">
+              <input type="text" id="phoneInput" placeholder="919876543210" class="input-field">
+              <button id="btnGetPairingCode" class="btn-primary">Get Code 📲</button>
+            </div>
+            <div id="pairingCodeResult" class="pairing-code-display" style="display: none;">
+              <span class="code-label">YOUR WHATSAPP PAIRING CODE:</span>
+              <div id="pairingCodeText" class="code-digits">A4X9-82KL</div>
+              <p class="code-instruction">আপনার ফোনের WhatsApp নোটিফিকেশনে চাপ দিন অথবা Settings ➔ Linked Devices ➔ Link with Phone Number-এ গিয়ে এই ৮ ডিজিটের কোডটি লিখুন!</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <!-- Connection Card -->
-            <section class="card connection-card">
-                <div class="card-header">
-                    <h2>📱 WhatsApp Connection</h2>
-                    <button class="btn btn-secondary btn-sm" id="btnReconnect">🔄 Reconnect</button>
-                </div>
+      <!-- Right Column: Stats & Smart Rules -->
+      <div class="right-column">
+        <!-- Analytics Counters -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon morning-icon">☀️</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statMorning">0</span>
+              <span class="stat-label">Morning Replies</span>
+            </div>
+          </div>
 
-                <div class="qr-container" id="qrContainer">
-                    <div class="qr-placeholder" id="qrPlaceholder">
-                        <div class="spinner"></div>
-                        <p>Initializing WhatsApp Client...</p>
-                    </div>
-                    <img id="qrImage" src="" alt="WhatsApp Web QR Code" style="display: none;">
-                </div>
+          <div class="stat-card">
+            <div class="stat-icon night-icon">🌙</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statNight">0</span>
+              <span class="stat-label">Night Replies</span>
+            </div>
+          </div>
 
-                <div class="connection-info" id="connectionInfo">
-                    <p class="info-title" id="infoTitle">Scanning Required</p>
-                    <p class="info-desc" id="infoDesc">Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, and scan the QR code above.</p>
-                </div>
-            </section>
+          <div class="stat-card">
+            <div class="stat-icon general-icon">💬</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statGeneral">0</span>
+              <span class="stat-label">General Replies</span>
+            </div>
+          </div>
 
-            <!-- Analytics Stats Cards -->
-            <section class="stats-section">
-                <div class="stat-card">
-                    <div class="stat-icon morning-glow">☀️</div>
-                    <div class="stat-info">
-                        <h3 id="statMorning">0</h3>
-                        <p>Morning Replies</p>
-                    </div>
-                </div>
+          <div class="stat-card">
+            <div class="stat-icon total-icon">📥</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTotal">0</span>
+              <span class="stat-label">Total Received</span>
+            </div>
+          </div>
+        </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon night-glow">🌙</div>
-                    <div class="stat-info">
-                        <h3 id="statNight">0</h3>
-                        <p>Night Replies</p>
-                    </div>
-                </div>
+        <!-- Smart Chat Rules Configuration -->
+        <section class="card rules-card">
+          <div class="card-header">
+            <h2>⚙️ Smart Chat Rules</h2>
+          </div>
+          <div class="rules-grid">
+            <div class="rule-box">
+              <label for="activePauseInput">
+                <span>🤫 Pause Bot when YOU reply (Minutes)</span>
+              </label>
+              <input type="number" id="activePauseInput" value="15" min="1" max="1440">
+              <p class="field-desc">If you send a message in a chat, bot pauses for this many minutes in that chat.</p>
+            </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon general-glow">💬</div>
-                    <div class="stat-info">
-                        <h3 id="statGeneral">0</h3>
-                        <p>General Replies</p>
-                    </div>
-                </div>
+            <div class="rule-box">
+              <label for="botCooldownInput">
+                <span>⏱️ Bot Auto-Reply Cooldown (Minutes)</span>
+              </label>
+              <input type="number" id="botCooldownInput" value="15" min="1" max="1440">
+              <p class="field-desc">Prevents repeating auto-replies to the same contact if they send multiple messages.</p>
+            </div>
+          </div>
+          <div class="rules-action">
+            <button id="btnSaveRules" class="btn-primary">💾 Save Smart Rules</button>
+          </div>
+        </section>
 
-                <div class="stat-card">
-                    <div class="stat-icon info-glow">📥</div>
-                    <div class="stat-info">
-                        <h3 id="statTotal">0</h3>
-                        <p>Total Received</p>
-                    </div>
-                </div>
-            </section>
+        <!-- Multi-Lingual Message Templates Manager -->
+        <section class="card templates-card">
+          <div class="card-header">
+            <h2>💬 Response Templates</h2>
+            <div class="template-tabs">
+              <button class="tab-btn active" data-tab="tab-general">💬 Any Message</button>
+              <button class="tab-btn" data-tab="tab-morning">☀️ Good Morning</button>
+              <button class="tab-btn" data-tab="tab-night">🌙 Good Night</button>
+            </div>
+          </div>
 
-            <!-- Smart Rules Control -->
-            <section class="card rules-card">
-                <div class="card-header">
-                    <h2>⚙️ Smart Chat Rules</h2>
-                </div>
-                <div class="rules-form">
-                    <div class="form-group">
-                        <label>🤫 Pause Bot when YOU reply (Minutes)</label>
-                        <input type="number" id="activePauseInput" value="15" min="0" max="120">
-                        <small style="color: var(--text-muted); font-size: 0.78rem;">If you send a message in a chat, bot pauses for this many minutes in that chat.</small>
-                    </div>
-                    <div class="form-group">
-                        <label>⏱️ Bot Auto-Reply Cooldown (Minutes)</label>
-                        <input type="number" id="botCooldownInput" value="15" min="0" max="120">
-                        <small style="color: var(--text-muted); font-size: 0.78rem;">Prevents repeating auto-replies to the same contact if they send multiple messages.</small>
-                    </div>
-                    <button class="btn btn-primary" id="btnSaveRules" style="align-self: flex-end;">💾 Save Smart Rules</button>
-                </div>
-            </section>
+          <!-- General Fallback Template Tab -->
+          <div class="tab-content active" id="tab-general">
+            <div class="add-template-box">
+              <input type="text" id="newGeneralInput" placeholder="Add response for any incoming message..." class="input-field">
+              <button id="btnAddGeneral" class="btn-add">+</button>
+            </div>
+            <ul class="template-list" id="generalTemplateList"></ul>
+          </div>
 
-            <!-- Template Manager -->
-            <section class="card templates-card">
-                <div class="card-header">
-                    <h2>💬 Response Templates</h2>
-                    <div class="tab-buttons">
-                        <button class="tab-btn active" data-tab="generalTab">💬 Any Message</button>
-                        <button class="tab-btn" data-tab="morningTab">☀️ Good Morning</button>
-                        <button class="tab-btn" data-tab="nightTab">🌙 Good Night</button>
-                    </div>
-                </div>
+          <!-- Morning Template Tab -->
+          <div class="tab-content" id="tab-morning">
+            <div class="add-template-box">
+              <input type="text" id="newMorningInput" placeholder="Add Good Morning template (Bengali / English)..." class="input-field">
+              <button id="btnAddMorning" class="btn-add">+</button>
+            </div>
+            <ul class="template-list" id="morningTemplateList"></ul>
+          </div>
 
-                <!-- General Templates -->
-                <div class="tab-content active" id="generalTab">
-                    <div class="add-template-box">
-                        <input type="text" id="newGeneralInput" placeholder="Add response for any incoming message..." />
-                        <button class="btn btn-primary" id="btnAddGeneral">+ Add</button>
-                    </div>
-                    <ul class="template-list" id="generalTemplateList"></ul>
-                </div>
+          <!-- Night Template Tab -->
+          <div class="tab-content" id="tab-night">
+            <div class="add-template-box">
+              <input type="text" id="newNightInput" placeholder="Add Good Night template (Bengali / English)..." class="input-field">
+              <button id="btnAddNight" class="btn-add">+</button>
+            </div>
+            <ul class="template-list" id="nightTemplateList"></ul>
+          </div>
+        </section>
+      </div>
+    </main>
 
-                <!-- Morning Templates -->
-                <div class="tab-content" id="morningTab">
-                    <div class="add-template-box">
-                        <input type="text" id="newMorningInput" placeholder="Add Good Morning response..." />
-                        <button class="btn btn-primary" id="btnAddMorning">+ Add</button>
-                    </div>
-                    <ul class="template-list" id="morningTemplateList"></ul>
-                </div>
+    <!-- Bottom Section: Simulator & Activity Stream -->
+    <section class="bottom-grid">
+      <!-- Interactive Simulator -->
+      <div class="card simulator-card">
+        <div class="card-header">
+          <h2>🧪 Simulator</h2>
+          <span class="badge badge-test">TEST MODE</span>
+        </div>
+        <p class="section-desc">Test how the bot responds to any incoming message.</p>
 
-                <!-- Night Templates -->
-                <div class="tab-content" id="nightTab">
-                    <div class="add-template-box">
-                        <input type="text" id="newNightInput" placeholder="Add Good Night response..." />
-                        <button class="btn btn-primary" id="btnAddNight">+ Add</button>
-                    </div>
-                    <ul class="template-list" id="nightTemplateList"></ul>
-                </div>
-            </section>
+        <form id="simulatorForm" class="simulator-form">
+          <div class="sim-inputs">
+            <div class="form-group">
+              <label>Sender Name</label>
+              <input type="text" id="simSender" value="Rohit" class="input-field">
+            </div>
+            <div class="form-group flex-2">
+              <label>Incoming Message</label>
+              <input type="text" id="simMessage" value="Hey" placeholder="Type a message (e.g. 'subho sokal', 'good night', 'hlw')" class="input-field">
+            </div>
+            <button type="submit" class="btn-primary btn-sim">🧪 Run Test Simulation</button>
+          </div>
+        </form>
 
-            <!-- Simulator Panel -->
-            <section class="card simulator-card">
-                <div class="card-header">
-                    <h2>🧪 Simulator</h2>
-                    <span class="badge badge-beta">Test Mode</span>
-                </div>
-                <p class="section-desc">Test how the bot responds to any incoming message.</p>
+        <div id="simResult" class="sim-result-box" style="display: none;">
+          <div class="sim-badge" id="simCategory">GENERAL</div>
+          <div class="sim-details">
+            <p id="simReason">Evaluated Rule</p>
+            <div class="sim-reply" id="simReplyBox">Reply message</div>
+          </div>
+        </div>
+      </div>
 
-                <form id="simulatorForm" class="sim-form">
-                    <div class="form-group">
-                        <label>Sender Name</label>
-                        <input type="text" id="simSender" value="Rohit" placeholder="Contact Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Incoming Message</label>
-                        <input type="text" id="simMessage" value="Hey" placeholder="Type any message..." required>
-                    </div>
-                    <button type="submit" class="btn btn-success btn-block">🚀 Run Test Simulation</button>
-                </form>
+      <!-- Real-Time Activity Stream -->
+      <div class="card logs-card">
+        <div class="card-header">
+          <h2>📜 Live Activity Stream</h2>
+          <button id="btnClearLogs" class="btn-danger-outline btn-sm">Clear Stream</button>
+        </div>
+        
+        <div class="logs-container" id="logsContainer">
+          <div class="empty-logs" id="emptyLogs">
+            <p>No activity logs yet. Waiting for incoming messages...</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-                <div class="sim-result" id="simResult" style="display: none;">
-                    <div class="sim-result-header">
-                        <span class="sim-tag" id="simCategory">GENERAL</span>
-                        <span class="sim-reason" id="simReason">Matched rule</span>
-                    </div>
-                    <div class="sim-reply-box" id="simReplyBox">...</div>
-                </div>
-            </section>
+    <!-- Footer -->
+    <footer class="footer">
+      <p>WhatsApp Smart Auto Agent • 2026</p>
+    </footer>
+  </div>
 
-            <!-- Live Activity Log -->
-            <section class="card logs-card">
-                <div class="card-header">
-                    <h2>📜 Live Activity Stream</h2>
-                    <button class="btn btn-danger btn-sm" id="btnClearLogs">Clear Stream</button>
-                </div>
-
-                <div class="logs-container" id="logsContainer">
-                    <div class="empty-logs" id="emptyLogs">
-                        <p>No activity recorded yet. Waiting for incoming WhatsApp messages...</p>
-                    </div>
-                </div>
-            </section>
-
-        </main>
-
-        <!-- Footer -->
-        <footer class="app-footer">
-            <p>WhatsApp Smart Auto Agent • 2026</p>
-        </footer>
-    </div>
-
-    <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
-
 </html>
