@@ -155,13 +155,13 @@ function evaluateMessage(text) {
   return { category: 'GENERAL', replyText, reason: 'General Question/Message -> Sent Busy Auto-Reply' };
 }
 
-// Initialize WhatsApp Web Client
+// Initialize WhatsApp Web Client with Ultra-Strict RAM Optimization
 let client = null;
 
 function initWhatsAppClient() {
   cleanStaleLockFiles();
 
-  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
+  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client with 256MB RAM cap...');
   agentState.status = 'INITIALIZING';
   broadcast({ type: 'STATE_UPDATE', state: agentState });
 
@@ -172,7 +172,11 @@ function initWhatsAppClient() {
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-default-browser-check',
-    '--disable-gpu'
+    '--disable-gpu',
+    '--renderer-process-limit=1',
+    '--disable-site-isolation-trials',
+    '--disable-features=IsolateOrigins,site-per-process,AudioServiceOutOfProcess',
+    '--js-flags=--max-old-space-size=256'
   ];
 
   const clientOpts = {

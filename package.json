@@ -4,16 +4,14 @@
   "description": "Automated WhatsApp Agent for Good Morning and Good Night greetings with a Web Dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node --max-old-space-size=256 server.js",
+    "dev": "node --max-old-space-size=256 server.js"
   },
   "keywords": [
     "whatsapp",
     "bot",
     "agent",
-    "auto-responder",
-    "good-morning",
-    "good-night"
+    "auto-responder"
   ],
   "author": "Antigravity AI",
   "license": "ISC",
