@@ -47,7 +47,10 @@ let agentState = {
     nightEnglish: [
       "Good night! 🌙 Wishing you a peaceful sleep and sweet dreams!"
     ],
-    general: [
+    generalBengali: [
+      "হ্যালো! 👋 আপনার মেসেজের জন্য ধন্যবাদ। আমি এখন ব্যস্ত বা দূরে আছি, খুব শীঘ্রই আপনার সাথে যোগযোগ করছি! আপনার দিনটি সুন্দর কাটুক! 😊"
+    ],
+    generalEnglish: [
       "Hello! 👋 Thanks for your message. I'm currently away or busy, but I've received your text and will get back to you soon! Have a great day! 😊"
     ]
   },
@@ -108,7 +111,24 @@ function cleanStaleLockFiles() {
   }
 }
 
-// Exact Evaluator Engine matching exact user requirements
+// Helper: Detect Bengali script or Banglish keywords
+function isBengaliLanguage(text) {
+  if (!text) return false;
+  // Check for Bengali Unicode script range (\u0980 to \u09FF)
+  if (/[\u0980-\u09FF]/.test(text)) return true;
+
+  // Common Banglish words
+  const banglishWords = [
+    'ki', 'kemon', 'kire', 'korcho', 'korchis', 'korchen', 'acho', 'achis',
+    'achen', 'bhalo', 'khobor', 'dada', 'bhai', 'didi', 'da', 'kaaj', 'kothay',
+    'babu', 'kono', 'shono', 'bolo', 'bolun', 'asbe', 'asben', 'hye', 'gache',
+    'amake', 'amr', 'tar', 'tomar', 'kake', 'chao'
+  ];
+  const normalized = text.toLowerCase().trim();
+  return banglishWords.some(w => new RegExp(`\\b${w}\\b`, 'i').test(normalized));
+}
+
+// Smart Language-Sensitive Evaluator Engine
 function evaluateMessage(text) {
   if (!text) return { category: 'NONE', replyText: null, reason: 'Empty message' };
 
@@ -120,7 +140,7 @@ function evaluateMessage(text) {
 
   if (isMorningBN) {
     const replyText = agentState.templates.morningBengali[0] || "শুভ সকাল! ☀️ আপনার আজকের দিনটি অনেক সুন্দর, আনন্দদায়ক ও সফল কাটুক! ✨";
-    return { category: 'MORNING', replyText, reason: 'Matched Bengali Morning Greeting' };
+    return { category: 'MORNING', replyText, reason: 'Matched Bengali Morning Greeting 🇧🇩' };
   }
 
   // 2. English Morning Check ("good morning", "gm")
@@ -129,7 +149,7 @@ function evaluateMessage(text) {
 
   if (isMorningEN) {
     const replyText = agentState.templates.morningEnglish[0] || "Good morning! ☀️ Wishing you a wonderful, cheerful, and productive day ahead!";
-    return { category: 'MORNING', replyText, reason: 'Matched English Morning Greeting' };
+    return { category: 'MORNING', replyText, reason: 'Matched English Morning Greeting 🇬🇧' };
   }
 
   // 3. Bengali Night Check ("শুভ রাত্রি", "শুভরাত্রি", "subho ratri")
@@ -138,7 +158,7 @@ function evaluateMessage(text) {
 
   if (isNightBN) {
     const replyText = agentState.templates.nightBengali[0] || "শুভ রাত্রি! 🌙 চমৎকার ও শান্তিময় ঘুম হোক, মিষ্টি স্বপ্ন দেখুন! 💤";
-    return { category: 'NIGHT', replyText, reason: 'Matched Bengali Night Greeting' };
+    return { category: 'NIGHT', replyText, reason: 'Matched Bengali Night Greeting 🇧🇩' };
   }
 
   // 4. English Night Check ("good night", "gn")
@@ -147,12 +167,19 @@ function evaluateMessage(text) {
 
   if (isNightEN) {
     const replyText = agentState.templates.nightEnglish[0] || "Good night! 🌙 Wishing you a peaceful sleep and sweet dreams!";
-    return { category: 'NIGHT', replyText, reason: 'Matched English Night Greeting' };
+    return { category: 'NIGHT', replyText, reason: 'Matched English Night Greeting 🇬🇧' };
   }
 
-  // 5. ANY OTHER QUESTION / MESSAGE ("hi", "hlw", "ki korchi", etc.)
-  const replyText = agentState.templates.general[0] || "Hello! 👋 Thanks for your message. I'm currently away or busy, but I've received your text and will get back to you soon! Have a great day! 😊";
-  return { category: 'GENERAL', replyText, reason: 'General Question/Message -> Sent Busy Auto-Reply' };
+  // 5. ANY OTHER GENERAL QUESTION / MESSAGE ("hi", "hlw", "kemon achos", etc.)
+  if (isBengaliLanguage(text)) {
+    const replyText = (agentState.templates.generalBengali && agentState.templates.generalBengali[0]) || 
+      "হ্যালো! 👋 আপনার মেসেজের জন্য ধন্যবাদ। আমি এখন ব্যস্ত বা দূরে আছি, খুব শীঘ্রই আপনার সাথে যোগযোগ করছি! আপনার দিনটি সুন্দর কাটুক! 😊";
+    return { category: 'GENERAL', replyText, reason: 'Detected Bengali/Banglish -> Sent Bengali Busy Reply 🇧🇩' };
+  } else {
+    const replyText = (agentState.templates.generalEnglish && agentState.templates.generalEnglish[0]) || 
+      "Hello! 👋 Thanks for your message. I'm currently away or busy, but I've received your text and will get back to you soon! Have a great day! 😊";
+    return { category: 'GENERAL', replyText, reason: 'Detected English -> Sent English Busy Reply 🇬🇧' };
+  }
 }
 
 // Initialize WhatsApp Web Client
@@ -415,12 +442,13 @@ app.post('/api/settings', (req, res) => {
 });
 
 app.post('/api/templates', (req, res) => {
-  const { morningBengali, morningEnglish, nightBengali, nightEnglish, general } = req.body;
+  const { morningBengali, morningEnglish, nightBengali, nightEnglish, generalBengali, generalEnglish } = req.body;
   if (Array.isArray(morningBengali)) agentState.templates.morningBengali = morningBengali;
   if (Array.isArray(morningEnglish)) agentState.templates.morningEnglish = morningEnglish;
   if (Array.isArray(nightBengali)) agentState.templates.nightBengali = nightBengali;
   if (Array.isArray(nightEnglish)) agentState.templates.nightEnglish = nightEnglish;
-  if (Array.isArray(general)) agentState.templates.general = general;
+  if (Array.isArray(generalBengali)) agentState.templates.generalBengali = generalBengali;
+  if (Array.isArray(generalEnglish)) agentState.templates.generalEnglish = generalEnglish;
   addLog('success', 'Templates Updated', 'Custom response templates saved successfully.');
   broadcast({ type: 'STATE_UPDATE', state: agentState });
   res.json({ success: true, templates: agentState.templates });
