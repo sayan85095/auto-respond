@@ -161,7 +161,7 @@ let client = null;
 function initWhatsAppClient() {
   cleanStaleLockFiles();
 
-  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client with 256MB RAM cap...');
+  addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
   agentState.status = 'INITIALIZING';
   broadcast({ type: 'STATE_UPDATE', state: agentState });
 
@@ -172,11 +172,7 @@ function initWhatsAppClient() {
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-default-browser-check',
-    '--disable-gpu',
-    '--renderer-process-limit=1',
-    '--disable-site-isolation-trials',
-    '--disable-features=IsolateOrigins,site-per-process,AudioServiceOutOfProcess',
-    '--js-flags=--max-old-space-size=256'
+    '--disable-gpu'
   ];
 
   const clientOpts = {
