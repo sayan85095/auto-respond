@@ -11,15 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const infoDesc = document.getElementById('infoDesc');
   const btnReconnect = document.getElementById('btnReconnect');
 
-  const loginTabBtns = document.querySelectorAll('.login-tab-btn');
-  const qrModeContainer = document.getElementById('qrModeContainer');
-  const phoneModeContainer = document.getElementById('phoneModeContainer');
-
-  const phoneInput = document.getElementById('phoneInput');
-  const btnGetPairingCode = document.getElementById('btnGetPairingCode');
-  const pairingCodeResult = document.getElementById('pairingCodeResult');
-  const pairingCodeText = document.getElementById('pairingCodeText');
-
   const statMorning = document.getElementById('statMorning');
   const statNight = document.getElementById('statNight');
   const statGeneral = document.getElementById('statGeneral');
@@ -65,62 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let popupShown = false;
-
-  // Login Mode Tab Switcher (QR Code vs Phone OTP Code)
-  loginTabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      loginTabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const mode = btn.getAttribute('data-login-mode');
-      if (mode === 'phone') {
-        qrModeContainer.style.display = 'none';
-        phoneModeContainer.style.display = 'block';
-      } else {
-        phoneModeContainer.style.display = 'none';
-        qrModeContainer.style.display = 'block';
-      }
-    });
-  });
-
-  // Request Phone Pairing Code (OTP Code) Handler
-  if (btnGetPairingCode) {
-    btnGetPairingCode.addEventListener('click', async () => {
-      const phoneNumber = phoneInput.value.trim();
-      if (!phoneNumber) {
-        alert('❌ অনুগ্রহ করে আপনার মোবাইল নম্বরটি লিখুন (যেমন: 919876543210)');
-        return;
-      }
-
-      btnGetPairingCode.disabled = true;
-      btnGetPairingCode.textContent = 'Generating...';
-
-      try {
-        const res = await fetch('/api/request-pairing-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber })
-        });
-
-        const data = await res.json();
-        if (data.success && data.code) {
-          pairingCodeResult.style.display = 'block';
-          // Format 8-digit code as A4X9 - 82KL
-          const formattedCode = data.code.length === 8 ? `${data.code.substring(0, 4)} - ${data.code.substring(4)}` : data.code;
-          pairingCodeText.textContent = formattedCode;
-          alert(`✅ Pairing Code Generated: ${formattedCode}\n\nআপনার ফোনের WhatsApp অ্যাপ খুলে নোটিফিকেশনে চাপ দিন অথবা Linked Devices-এ গিয়ে এই কোডটি লিখুন!`);
-        } else {
-          alert(`❌ ${data.message || 'Failed to generate code'}`);
-        }
-      } catch (err) {
-        console.error('Error requesting pairing code:', err);
-        alert('❌ Error connecting to server. Make sure agent is running.');
-      } finally {
-        btnGetPairingCode.disabled = false;
-        btnGetPairingCode.textContent = 'Get Code 📲';
-      }
-    });
-  }
 
   // Custom Toast Popup Notification
   function showSuccessPopup(name) {
