@@ -220,8 +220,8 @@ function initWhatsAppClient() {
     agentState.status = 'READY';
     agentState.qrCodeUrl = null;
 
-    let userName = 'WhatsApp User';
-    let userPhone = '';
+    let userName = null;
+    let userPhone = null;
 
     try {
       if (client && client.info) {
@@ -239,13 +239,32 @@ function initWhatsAppClient() {
           }
         }
       }
+
+      // Query WhatsApp Web internal Store object via Puppeteer page evaluation if pushname is missing
+      if (!userName && client && client.pupPage) {
+        const storeName = await client.pupPage.evaluate(() => {
+          try {
+            const me = window.Store.Contact.get(window.Store.User.getMeUser());
+            return me ? (me.name || me.pushname || me.formattedTitle || me.id.user) : null;
+          } catch(e) {
+            return null;
+          }
+        });
+        if (storeName) userName = storeName;
+      }
     } catch (err) {
       console.error('Error resolving user contact info on ready:', err.message);
     }
 
-    let fullLabel = userName;
-    if (userPhone) {
-      fullLabel += ` (+${userPhone})`;
+    // Build clear user label
+    let fullLabel = '';
+    if (userName && userName !== 'WhatsApp User') {
+      fullLabel = userName;
+      if (userPhone) fullLabel += ` (+${userPhone})`;
+    } else if (userPhone) {
+      fullLabel = `+${userPhone}`;
+    } else {
+      fullLabel = 'Connected WhatsApp User';
     }
 
     agentState.userInfo = fullLabel;
