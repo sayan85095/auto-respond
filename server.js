@@ -155,7 +155,7 @@ function evaluateMessage(text) {
   return { category: 'GENERAL', replyText, reason: 'General Question/Message -> Sent Busy Auto-Reply' };
 }
 
-// Initialize WhatsApp Web Client with Ultra-Strict RAM Optimization
+// Initialize WhatsApp Web Client
 let client = null;
 
 function initWhatsAppClient() {
@@ -214,14 +214,13 @@ function initWhatsAppClient() {
   client.on('authenticated', () => {
     agentState.status = 'AUTHENTICATED';
     agentState.qrCodeUrl = null;
-    agentState.userInfo = 'Connected User';
     addLog('success', 'Authenticated', 'WhatsApp Web session authenticated successfully!');
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
 
   client.on('ready', async () => {
     agentState.status = 'READY';
-    agentState.qrCodeUrl = null;
+    agentState.qrCodeUrl = null; // Permanently hide QR code on ready
 
     let userLabel = 'Connected WhatsApp Account';
     try {
@@ -231,7 +230,6 @@ function initWhatsAppClient() {
         } else if (client.info.wid && client.info.wid.user) {
           userLabel = `+${client.info.wid.user}`;
         }
-        // Try resolving contact details asynchronously
         if (client.info.wid && client.info.wid._serialized) {
           const myContact = await client.getContactById(client.info.wid._serialized);
           if (myContact && (myContact.pushname || myContact.name)) {
@@ -245,20 +243,31 @@ function initWhatsAppClient() {
 
     agentState.userInfo = userLabel;
     addLog('success', 'Smart Agent Active 24/7', `WhatsApp Multi-Lingual Agent connected for: ${agentState.userInfo}`);
+    
     broadcast({ type: 'STATE_UPDATE', state: agentState });
+    broadcast({ type: 'READY_POPUP', userInfo: agentState.userInfo });
   });
 
   client.on('auth_failure', (msg) => {
     agentState.status = 'DISCONNECTED';
-    addLog('error', 'Auth Failed', `Authentication failed: ${msg}`);
+    agentState.qrCodeUrl = null;
+    addLog('error', 'Auth Failed', `Authentication failed: ${msg}. Auto-regenerating QR code...`);
     broadcast({ type: 'STATE_UPDATE', state: agentState });
+    setTimeout(() => {
+      console.log('Re-initializing client to generate fresh QR code after auth failure...');
+      initWhatsAppClient();
+    }, 3000);
   });
 
   client.on('disconnected', (reason) => {
     agentState.status = 'DISCONNECTED';
     agentState.qrCodeUrl = null;
-    addLog('error', 'Disconnected', `WhatsApp disconnected: ${reason}`);
+    addLog('error', 'Disconnected', `WhatsApp disconnected: ${reason}. Auto-regenerating fresh QR code...`);
     broadcast({ type: 'STATE_UPDATE', state: agentState });
+    setTimeout(() => {
+      console.log('Re-initializing client to generate fresh QR code after disconnect...');
+      initWhatsAppClient();
+    }, 3000);
   });
 
   // Track ALL outgoing messages sent by YOU

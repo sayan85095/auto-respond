@@ -48,11 +48,53 @@ document.addEventListener('DOMContentLoaded', () => {
     status: 'DISCONNECTED',
     autoReplyEnabled: true,
     qrCodeUrl: null,
+    userInfo: null,
     stats: { totalReceived: 0, morningReplies: 0, nightReplies: 0, generalReplies: 0 },
     settings: { activeChatPauseMinutes: 15, botCooldownMinutes: 15 },
     templates: { morning: [], night: [], general: [] },
     logs: []
   };
+
+  let popupShown = false;
+
+  // Custom Toast Popup Notification
+  function showSuccessPopup(name) {
+    if (popupShown) return;
+    popupShown = true;
+
+    const popup = document.createElement('div');
+    popup.style.position = 'fixed';
+    popup.style.top = '20px';
+    popup.style.right = '20px';
+    popup.style.backgroundColor = '#10B981';
+    popup.style.color = '#FFFFFF';
+    popup.style.padding = '16px 24px';
+    popup.style.borderRadius = '12px';
+    popup.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.4)';
+    popup.style.zIndex = '9999';
+    popup.style.fontWeight = '700';
+    popup.style.fontSize = '1.05rem';
+    popup.style.display = 'flex';
+    popup.style.alignItems = 'center';
+    popup.style.gap = '12px';
+    popup.style.animation = 'fadeInDown 0.5s ease-out';
+
+    popup.innerHTML = `
+      <span style="font-size: 1.6rem;">🎉</span>
+      <div>
+        <div style="font-weight: 800; font-size: 1.1rem;">WhatsApp Device Linked Successfully!</div>
+        <div style="font-size: 0.9rem; font-weight: 500; opacity: 0.95;">Connected as: <strong>${escapeHtml(name)}</strong> (24/7 Agent Active)</div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+      popup.style.opacity = '0';
+      popup.style.transition = 'opacity 0.5s ease';
+      setTimeout(() => popup.remove(), 500);
+    }, 6000);
+  }
 
   // WebSocket Setup
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -72,6 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.type === 'INIT_STATE' || data.type === 'STATE_UPDATE') {
           state = data.state;
           renderAll();
+
+          if (state.status === 'READY' && state.userInfo) {
+            showSuccessPopup(state.userInfo);
+          } else if (state.status === 'QR_READY') {
+            popupShown = false; // Reset popup trigger if re-entering QR state
+          }
+        } else if (data.type === 'READY_POPUP') {
+          showSuccessPopup(data.userInfo || 'WhatsApp Account');
         } else if (data.type === 'LOG_ADDED') {
           if (data.log) {
             state.logs.unshift(data.log);
@@ -116,32 +166,32 @@ document.addEventListener('DOMContentLoaded', () => {
       statusPill.classList.add('status-ready');
       statusText.textContent = `Connected (${state.userInfo || 'Active'})`;
 
-      qrPlaceholder.style.display = 'none';
-      qrImage.style.display = 'none';
       qrContainer.innerHTML = `
-        <div style="text-align: center; color: var(--success);">
-          <div style="font-size: 3.5rem; margin-bottom: 8px;">✅</div>
-          <p style="font-weight: 700; color: var(--text-main);">WhatsApp Connected!</p>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Logged in as: <strong>${escapeHtml(state.userInfo || 'Active')}</strong></p>
+        <div style="text-align: center; color: var(--success); padding: 12px;">
+          <div style="font-size: 3.8rem; margin-bottom: 8px;">✅</div>
+          <p style="font-weight: 800; font-size: 1.2rem; color: var(--text-main); margin: 0;">Device Linked & Active!</p>
+          <p style="font-size: 0.95rem; color: var(--primary); font-weight: 700; margin-top: 6px;">Logged in as: <strong>${escapeHtml(state.userInfo || 'WhatsApp User')}</strong></p>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">QR Code is permanently hidden while device is connected.</p>
         </div>
       `;
-      infoTitle.textContent = 'Agent Active 24/7';
+      infoTitle.textContent = `Connected: ${state.userInfo || 'WhatsApp User'}`;
       infoTitle.style.color = 'var(--success)';
-      infoDesc.textContent = `Connected successfully as ${state.userInfo || 'WhatsApp User'}. Auto-responder is active.`;
+      infoDesc.textContent = `Agent is active 24/7 for ${state.userInfo || 'WhatsApp User'}. Auto-replies are working automatically!`;
 
     } else if (state.status === 'AUTHENTICATED') {
       statusPill.classList.add('status-ready');
-      statusText.textContent = 'Authenticating...';
+      statusText.textContent = 'Device Linked! Loading...';
 
       qrContainer.innerHTML = `
         <div class="qr-placeholder">
           <div class="spinner"></div>
-          <p>Authenticated! Loading WhatsApp chats...</p>
+          <p style="font-weight: 700; color: var(--success);">🎉 Device Linked Successfully!</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Syncing chats and profile info...</p>
         </div>
       `;
-      infoTitle.textContent = 'Authenticating...';
+      infoTitle.textContent = 'Linking Device...';
       infoTitle.style.color = 'var(--success)';
-      infoDesc.textContent = 'QR Code scanned successfully! Syncing chats with server...';
+      infoDesc.textContent = 'Device scanned successfully! Syncing profile and activating 24/7 Agent...';
 
     } else if (state.status === 'QR_READY' && state.qrCodeUrl) {
       statusPill.classList.add('status-qr');
@@ -174,11 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="qr-placeholder">
           <div style="font-size: 2.5rem; color: var(--danger);">⚠️</div>
           <p>Agent Disconnected</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">Auto-generating new QR Code...</p>
         </div>
       `;
       infoTitle.textContent = 'Disconnected';
       infoTitle.style.color = 'var(--danger)';
-      infoDesc.textContent = 'Click "Reconnect" to restart the WhatsApp Web client.';
+      infoDesc.textContent = 'Connection lost. Auto-generating fresh QR Code for reconnecting...';
     }
   }
 
