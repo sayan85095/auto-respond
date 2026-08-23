@@ -217,23 +217,25 @@ function initWhatsAppClient() {
   });
 
   async function markAsReady() {
-    if (agentState.status === 'READY' && agentState.userInfo) return;
-
     agentState.status = 'READY';
     agentState.qrCodeUrl = null;
 
-    let userLabel = 'Connected WhatsApp Account';
+    let userName = 'WhatsApp User';
+    let userPhone = '';
+
     try {
       if (client && client.info) {
         if (client.info.pushname) {
-          userLabel = client.info.pushname;
-        } else if (client.info.wid && client.info.wid.user) {
-          userLabel = `+${client.info.wid.user}`;
+          userName = client.info.pushname;
+        }
+        if (client.info.wid && client.info.wid.user) {
+          userPhone = client.info.wid.user;
         }
         if (client.info.wid && client.info.wid._serialized) {
           const myContact = await client.getContactById(client.info.wid._serialized);
-          if (myContact && (myContact.pushname || myContact.name)) {
-            userLabel = myContact.pushname || myContact.name;
+          if (myContact) {
+            if (myContact.pushname) userName = myContact.pushname;
+            else if (myContact.name) userName = myContact.name;
           }
         }
       }
@@ -241,7 +243,12 @@ function initWhatsAppClient() {
       console.error('Error resolving user contact info on ready:', err.message);
     }
 
-    agentState.userInfo = userLabel;
+    let fullLabel = userName;
+    if (userPhone) {
+      fullLabel += ` (+${userPhone})`;
+    }
+
+    agentState.userInfo = fullLabel;
     addLog('success', 'Smart Agent Active 24/7', `WhatsApp Multi-Lingual Agent connected for: ${agentState.userInfo}`);
     
     broadcast({ type: 'STATE_UPDATE', state: agentState });
