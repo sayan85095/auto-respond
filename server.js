@@ -157,9 +157,11 @@ function evaluateMessage(text) {
 
 // Initialize WhatsApp Web Client
 let client = null;
+let stateCheckInterval = null;
 
 function initWhatsAppClient() {
   cleanStaleLockFiles();
+  if (stateCheckInterval) clearInterval(stateCheckInterval);
 
   addLog('info', 'Agent Starting', 'Initializing WhatsApp Web client...');
   agentState.status = 'INITIALIZING';
@@ -179,10 +181,6 @@ function initWhatsAppClient() {
     authStrategy: new LocalAuth({
       dataPath: path.join(__dirname, '.wwebjs_auth')
     }),
-    webVersionCache: {
-      type: 'remote',
-      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
-    },
     puppeteer: {
       headless: true,
       args: puppeteerArgs
@@ -210,17 +208,23 @@ function initWhatsAppClient() {
   client.on('authenticated', () => {
     agentState.status = 'AUTHENTICATED';
     agentState.qrCodeUrl = null;
-    addLog('success', 'Authenticated', 'WhatsApp Web session authenticated successfully!');
+    addLog('success', 'Authenticated', 'WhatsApp Web session authenticated successfully! Preparing connection...');
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
 
   client.on('ready', async () => {
+    await markAsReady();
+  });
+
+  async function markAsReady() {
+    if (agentState.status === 'READY' && agentState.userInfo) return;
+
     agentState.status = 'READY';
-    agentState.qrCodeUrl = null; // Permanently hide QR code on ready
+    agentState.qrCodeUrl = null;
 
     let userLabel = 'Connected WhatsApp Account';
     try {
-      if (client.info) {
+      if (client && client.info) {
         if (client.info.pushname) {
           userLabel = client.info.pushname;
         } else if (client.info.wid && client.info.wid.user) {
@@ -242,7 +246,21 @@ function initWhatsAppClient() {
     
     broadcast({ type: 'STATE_UPDATE', state: agentState });
     broadcast({ type: 'READY_POPUP', userInfo: agentState.userInfo });
-  });
+  }
+
+  // Active polling loop every 3 seconds to catch CONNECTED status instantly after QR scan
+  stateCheckInterval = setInterval(async () => {
+    if (client && agentState.status !== 'READY') {
+      try {
+        const state = await client.getState();
+        if (state === 'CONNECTED') {
+          await markAsReady();
+        }
+      } catch (e) {
+        // Client not fully initialized yet, ignore error
+      }
+    }
+  }, 3000);
 
   client.on('auth_failure', (msg) => {
     agentState.status = 'DISCONNECTED';
