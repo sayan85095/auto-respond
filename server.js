@@ -214,18 +214,36 @@ function initWhatsAppClient() {
   client.on('authenticated', () => {
     agentState.status = 'AUTHENTICATED';
     agentState.qrCodeUrl = null;
-    agentState.userInfo = 'WhatsApp Account';
+    agentState.userInfo = 'Connected User';
     addLog('success', 'Authenticated', 'WhatsApp Web session authenticated successfully!');
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
 
-  client.on('ready', () => {
+  client.on('ready', async () => {
     agentState.status = 'READY';
-    let displayName = 'Active Account';
-    if (client.info) {
-      displayName = client.info.pushname || (client.info.wid ? client.info.wid.user : null) || 'WhatsApp User';
+    agentState.qrCodeUrl = null;
+
+    let userLabel = 'Connected WhatsApp Account';
+    try {
+      if (client.info) {
+        if (client.info.pushname) {
+          userLabel = client.info.pushname;
+        } else if (client.info.wid && client.info.wid.user) {
+          userLabel = `+${client.info.wid.user}`;
+        }
+        // Try resolving contact details asynchronously
+        if (client.info.wid && client.info.wid._serialized) {
+          const myContact = await client.getContactById(client.info.wid._serialized);
+          if (myContact && (myContact.pushname || myContact.name)) {
+            userLabel = myContact.pushname || myContact.name;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error resolving user contact info on ready:', err.message);
     }
-    agentState.userInfo = displayName;
+
+    agentState.userInfo = userLabel;
     addLog('success', 'Smart Agent Active 24/7', `WhatsApp Multi-Lingual Agent connected for: ${agentState.userInfo}`);
     broadcast({ type: 'STATE_UPDATE', state: agentState });
   });
