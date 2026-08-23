@@ -217,6 +217,8 @@ function initWhatsAppClient() {
   });
 
   async function markAsReady() {
+    if (agentState.status === 'READY' && agentState.userInfo && agentState.userInfo !== 'Active WhatsApp Account') return;
+
     agentState.status = 'READY';
     agentState.qrCodeUrl = null;
 
@@ -305,77 +307,77 @@ function initWhatsAppClient() {
     }, 3000);
   });
 
-  // Track ALL outgoing messages sent by YOU
+  // Track ALL WhatsApp messages (both incoming & outgoing) via message_create
   client.on('message_create', async (msg) => {
     try {
-      if (msg.fromMe && !msg.isStatus && msg.to && !msg.to.includes('@g.us')) {
-        const contactId = msg.to;
-        lastUserSentMap.set(contactId, Date.now());
+      if (!msg || msg.isStatus) return;
+
+      // Handle Outgoing Message (sent by YOU from your phone)
+      if (msg.fromMe) {
+        if (msg.to && !msg.to.includes('@g.us')) {
+          const contactId = msg.to;
+          lastUserSentMap.set(contactId, Date.now());
+        }
+        return;
       }
+
+      // Handle Incoming Message (sent by someone else to YOU)
+      if (!msg.fromMe && msg.from && !msg.from.includes('@g.us')) {
+        agentState.stats.totalReceived++;
+        const contact = await msg.getContact();
+        const senderName = contact.pushname || contact.name || contact.number || msg.from;
+        const messageBody = msg.body || '';
+        const contactId = msg.from;
+
+        addLog('info', 'Incoming Message', `From ${senderName}: "${messageBody}"`);
+
+        if (!agentState.autoReplyEnabled) {
+          addLog('warning', 'Auto-Reply Disabled', `Received message from ${senderName}, but auto-responder is turned OFF.`);
+          return;
+        }
+
+        const now = Date.now();
+
+        // RULE 1: Check if YOU (the user) sent a message to this contact recently (Active Chat Check)
+        const lastUserTime = lastUserSentMap.get(contactId) || 0;
+        const activePauseMs = (agentState.settings.activeChatPauseMinutes || 15) * 60 * 1000;
+        if (now - lastUserTime < activePauseMs) {
+          const remainingMin = Math.ceil((activePauseMs - (now - lastUserTime)) / 60000);
+          addLog('warning', '🤫 Chat Active (Auto-Paused)', `Skipping auto-reply for ${senderName} because YOU are actively chatting with them. Paused for ${remainingMin}m.`);
+          return;
+        }
+
+        // RULE 2: Check if the BOT already sent an auto-reply to this contact recently
+        const lastBotTime = lastBotRepliedMap.get(contactId) || 0;
+        const botCooldownMs = (agentState.settings.botCooldownMinutes || 15) * 60 * 1000;
+        if (now - lastBotTime < botCooldownMs) {
+          const remainingMin = Math.ceil((botCooldownMs - (now - lastBotTime)) / 60000);
+          addLog('warning', '⏱️ Auto-Reply Cooldown', `Skipping repeated auto-reply for ${senderName}. Bot already replied recently (Cooldown remaining: ${remainingMin}m).`);
+          return;
+        }
+
+        const evalResult = evaluateMessage(messageBody);
+
+        if (evalResult.category === 'MORNING') {
+          await msg.reply(evalResult.replyText);
+          lastBotRepliedMap.set(contactId, now);
+          agentState.stats.morningReplies++;
+          addLog('gm', '☀️ Morning Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
+        } else if (evalResult.category === 'NIGHT') {
+          await msg.reply(evalResult.replyText);
+          lastBotRepliedMap.set(contactId, now);
+          agentState.stats.nightReplies++;
+          addLog('gn', '🌙 Night Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
+        } else if (evalResult.category === 'GENERAL') {
+          await msg.reply(evalResult.replyText);
+          lastBotRepliedMap.set(contactId, now);
+          agentState.stats.generalReplies++;
+          addLog('gen', '💬 Busy Auto-Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
+        }
+      }
+
     } catch (err) {
-      console.error('Error tracking outgoing user message:', err);
-    }
-  });
-
-  // Handle incoming messages from others
-  client.on('message', async (msg) => {
-    try {
-      if (msg.fromMe || msg.isStatus || msg.from.includes('@g.us')) return;
-
-      agentState.stats.totalReceived++;
-      const contact = await msg.getContact();
-      const senderName = contact.pushname || contact.name || contact.number || msg.from;
-      const messageBody = msg.body;
-      const contactId = msg.from;
-
-      addLog('info', 'Incoming Message', `From ${senderName}: "${messageBody}"`);
-
-      if (!agentState.autoReplyEnabled) {
-        addLog('warning', 'Auto-Reply Disabled', `Received message from ${senderName}, but auto-responder is turned OFF.`);
-        return;
-      }
-
-      const now = Date.now();
-
-      // RULE 1: Check if YOU (the user) sent a message to this contact recently (Active Chat Check)
-      const lastUserTime = lastUserSentMap.get(contactId) || 0;
-      const activePauseMs = (agentState.settings.activeChatPauseMinutes || 15) * 60 * 1000;
-      if (now - lastUserTime < activePauseMs) {
-        const remainingMin = Math.ceil((activePauseMs - (now - lastUserTime)) / 60000);
-        addLog('warning', '🤫 Chat Active (Auto-Paused)', `Skipping auto-reply for ${senderName} because YOU are actively chatting with them. Paused for ${remainingMin}m.`);
-        return;
-      }
-
-      // RULE 2: Check if the BOT already sent an auto-reply to this contact recently
-      const lastBotTime = lastBotRepliedMap.get(contactId) || 0;
-      const botCooldownMs = (agentState.settings.botCooldownMinutes || 15) * 60 * 1000;
-      if (now - lastBotTime < botCooldownMs) {
-        const remainingMin = Math.ceil((botCooldownMs - (now - lastBotTime)) / 60000);
-        addLog('warning', '⏱️ Auto-Reply Cooldown', `Skipping repeated auto-reply for ${senderName}. Bot already replied recently (Cooldown remaining: ${remainingMin}m).`);
-        return;
-      }
-
-      const evalResult = evaluateMessage(messageBody);
-
-      if (evalResult.category === 'MORNING') {
-        await msg.reply(evalResult.replyText);
-        lastBotRepliedMap.set(contactId, now);
-        agentState.stats.morningReplies++;
-        addLog('gm', '☀️ Morning Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
-      } else if (evalResult.category === 'NIGHT') {
-        await msg.reply(evalResult.replyText);
-        lastBotRepliedMap.set(contactId, now);
-        agentState.stats.nightReplies++;
-        addLog('gn', '🌙 Night Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
-      } else if (evalResult.category === 'GENERAL') {
-        await msg.reply(evalResult.replyText);
-        lastBotRepliedMap.set(contactId, now);
-        agentState.stats.generalReplies++;
-        addLog('gen', '💬 Busy Auto-Reply Sent', `Replied to ${senderName}: "${evalResult.replyText}"`);
-      }
-
-    } catch (err) {
-      console.error('Error processing incoming WhatsApp message:', err);
+      console.error('Error processing WhatsApp message:', err);
       addLog('error', 'Processing Error', `Error handling message: ${err.message}`);
     }
   });
